@@ -65,7 +65,7 @@ class Player:
         if bool1:
             print(f"{self.name} drew the {card}")
         if bool2:
-            print(f"Current Hand Value: {self.value}")
+            print(f"Current Hand Value: {self.value}\n")
         sleep(2)
         
     def hand_value(self): 
@@ -124,7 +124,7 @@ class Game:
         quit()
 
     def dealer_hits(self):
-        if self.dealer.value < 17:
+        while self.dealer.value < 17:
             print("Dealer has decided to draw a card\n")
             self.dealer.draw()
     
