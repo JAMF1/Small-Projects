@@ -1,7 +1,7 @@
 # settings.py
 window_size = "500x300"
 main_font = "Helvetica 14"
-bg_color = "gray"
+bg_color = "Gray"
 
 main_selection = ["Length",
              #"Temperature",
