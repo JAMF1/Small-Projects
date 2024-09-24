@@ -14,10 +14,16 @@ class App(tk.Tk):
         self.config(bg=BG_COLOR) 
 
         # Variables
-        self.variable_f = tk.StringVar(master=self, value="Formula")
-        self.variable_e = tk.StringVar(master=self, value="0")
-        self.variable_p = tk.StringVar(master=self, value="")
-        self.nlist = list()
+        self.variable_f = tk.StringVar(master=self, value='')
+        self.variable_p = tk.StringVar(master=self, value='')
+        self.variable_e = tk.StringVar(master=self, value='0')
+
+        self.nlist = ['']
+        self.joined_number = None
+
+        self.x = None
+        self.y = None
+        self.s = None
 
         # Window Layout 
         self.rowconfigure(ROW_LENGTH, uniform="a",weight=1)
@@ -33,33 +39,68 @@ class App(tk.Tk):
         self.mainloop()
 
     def set(self, number):
-        if (number == "0" and len(self.nlist) == 0) or (number == "." and number in self.nlist): 
+        entry_is_not_empty = len(self.nlist) > 1
+        formula_bar_is_empty = self.variable_f.get() == ''
+        if entry_is_not_empty and not formula_bar_is_empty:
+            ...
+        if (number == '0' and len(self.nlist) == 1) or (number == '.' and number in self.nlist): 
             pass
-        elif len(self.nlist) == 0 and number == ".":
-            self.nlist.append("0")
-            self.nlist.append(".")
-            self.variable_e.set(value="".join(self.nlist))
+
+        elif len(self.nlist) == 1 and number == '.':
+            self.nlist.append('0')
+            self.nlist.append('.')
+            self.joined_number = ''.join(self.nlist)
+            self.variable_e.set(value=self.joined_number)
         else: 
             self.nlist.append(number)
-            self.variable_e.set(value="".join(self.nlist))
+            self.joined_number = ''.join(self.nlist)
+            self.variable_e.set(value=self.joined_number)
 
-    def clear(self): 
-        self.variable_e.set("0")
+    def clear(self, partial=False): 
+        if not partial:
+            self.variable_e.set('0')
+            self.variable_f.set('')
+            self.variable_p.set('')
         self.nlist.clear()
-        self.variable_f.set("")
-        self.variable_p.set("")  
+        self.nlist.append('')
+        self.joined_number = None
 
     def make_negative(self): 
-        ...
+        input_is_not_empty = len(self.nlist) != 1
+        is_negative = self.nlist[0] == '-'
+        if input_is_not_empty and not is_negative:
+            self.nlist[0] = '-'
+            self.joined_number = ''.join(self.nlist)
+            self.variable_e.set(self.joined_number)
+        elif input_is_not_empty and is_negative:
+            self.nlist[0] = ''
+            self.joined_number = ''.join(self.nlist)
+            self.variable_e.set(self.joined_number)
+        else: pass
 
     def make_percentage(self):
-        ...
-    def get_result(self):
-        ...
+        entry_is_not_empty = len(self.nlist) > 1
+        formula_bar_is_empty = self.variable_f.get() == ''
+        if entry_is_not_empty and not formula_bar_is_empty:
+            self.joined_number = float(self.joined_number) / 100
+            self.joined_number = str(self.joined_number)
+            self.variable_e.set(self.joined_number)
     
-    def operation(self):
-        ...
+    def operation(self, symbol):
+        entry_is_not_empty = len(self.nlist) > 1
+        formula_bar_is_empty = self.variable_f.get() == ''
 
+        if entry_is_not_empty and formula_bar_is_empty:
+            self.variable_f.set(self.joined_number + ' ' + symbol)
+            self.s = symbol
+            self.x = self.joined_number
+            self.clear(partial=True)
+            print('Sucess')
+
+        if entry_is_not_empty and not formula_bar_is_empty:
+            self.y = self.joined_number
+            self.calculate(x=self.x, y=self.y, symbol=self.s, new_symbol=symbol)
+         
     def create_entries(self): 
         formula = ttk.Label(master=self,
                             textvariable=self.variable_f,
@@ -96,16 +137,59 @@ class App(tk.Tk):
     
     def start_operators(self):
         add = Operator(parent=self, func=self.operation, symbol=MATH_OPERATORS['+']['character'], row=MATH_OPERATORS['+']['row'], col=MATH_OPERATORS['+']['col'])
-        equal = Operator(parent=self, func=self.get_result, symbol=MATH_OPERATORS['=']['character'], row=MATH_OPERATORS['=']['row'], col=MATH_OPERATORS['=']['col'])
+        equal = Operator(parent=self, func=self.operation, symbol=MATH_OPERATORS['=']['character'], row=MATH_OPERATORS['=']['row'], col=MATH_OPERATORS['=']['col'])
         divide = Operator(parent=self, func=self.operation, symbol=MATH_OPERATORS['/']['character'], row=MATH_OPERATORS['/']['row'], col=MATH_OPERATORS['/']['col'])
         subtract = Operator(parent=self,func=self.operation, symbol=MATH_OPERATORS['-']['character'], row=MATH_OPERATORS['-']['row'], col=MATH_OPERATORS['-']['col'])
         multiply = Operator(parent=self, func=self.operation, symbol=MATH_OPERATORS['*']['character'], row=MATH_OPERATORS['*']['row'], col=MATH_OPERATORS['*']['col'])
     
     def start_actions(self):
         clear = Action(parent=self, func=self.clear, symbol=ACTION_OPERATORS['clear']['text'], row=ACTION_OPERATORS['clear']['row'], col=ACTION_OPERATORS['clear']['col'])
-        negative = Action(parent=self, func=..., symbol=ACTION_OPERATORS['negative']['text'], row=ACTION_OPERATORS['negative']['row'], col=ACTION_OPERATORS['negative']['col'])
-        percent = Action(parent=self, func=..., symbol=ACTION_OPERATORS['percent']['text'], row=ACTION_OPERATORS['percent']['row'], col=ACTION_OPERATORS['percent']['col'])
-
+        negative = Action(parent=self, func=self.make_negative, symbol=ACTION_OPERATORS['negative']['text'], row=ACTION_OPERATORS['negative']['row'], col=ACTION_OPERATORS['negative']['col'])
+        percent = Action(parent=self, func=self.make_percentage, symbol=ACTION_OPERATORS['percent']['text'], row=ACTION_OPERATORS['percent']['row'], col=ACTION_OPERATORS['percent']['col'])
+    
+    def calculate(self, x, y, symbol, new_symbol):
+        x = str(x)
+        is_float = ('.' in x) or ('.' in y)
+        if is_float: 
+            x = float(x)
+            y = float(y)
+        else:
+            x = int(x)
+            y = int(y)
+        try:
+            match symbol:
+                case '+':
+                    self.x = x + y
+                    self.variable_e.set(str(self.x))
+                    self.variable_f.set(str(self.x) + ' ' + new_symbol)
+                    self.s = new_symbol
+                    self.clear(partial=True)
+                case '-':
+                    self.x = x - y
+                    self.variable_e.set(str(self.x))
+                    self.variable_f.set(str(self.x) + ' ' + new_symbol)
+                    self.s = new_symbol
+                    self.clear(partial=True)
+                case '/':
+                    self.x = x / y
+                    self.variable_e.set(str(self.x))
+                    self.variable_f.set(str(self.x) + ' ' + new_symbol)
+                    self.s = new_symbol
+                    self.clear(partial=True)
+                case 'x':
+                    self.x = x * y
+                    self.variable_e.set(str(self.x))
+                    self.variable_f.set(str(self.x) + ' ' + new_symbol)
+                    self.s = new_symbol
+                    self.clear(partial=True)
+                case _: pass
+        except ZeroDivisionError:
+            self.clear()
+            self.variable_e.set('Cannor Divide by zero')
+        if new_symbol == '=':
+            self.variable_e.set(str(self.x))
+            self.variable_f.set(f'{x} {symbol} {y} {new_symbol} {self.x}')
+            
 class Number(tk.Button):
     def __init__(self, parent, number, row, col, span, func): 
         super().__init__(master = parent,
@@ -122,9 +206,6 @@ class Number(tk.Button):
                   columnspan=span,
                   sticky="NEWS")
 
-    def update_display(self): 
-        print("hello")
-
 class Operator(tk.Button):
     def __init__(self, parent, symbol, row, col, func): 
         super().__init__(master = parent,
@@ -135,7 +216,7 @@ class Operator(tk.Button):
                          #activebackground="White"
                          padx = 10,
                          pady = 10,
-                         command = func)
+                         command = lambda: func(symbol))
         self.grid(row=row,
                   column=col,
                   sticky='NESW')
@@ -157,3 +238,5 @@ class Action(tk.Button):
 
 if __name__ == '__main__':
     App('Calculator')
+
+#TODO Allow for zero division error
